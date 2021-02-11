@@ -1,0 +1,106 @@
+{
+  "name": "db-evo",
+  "version": "1.0.1-rc1",
+  "description": "art-ws.com DB evolutions",
+  "homepage": "https://github.com/art-ws/db-evo",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist coverage *.tgz *.tsbuildinfo *.log",
+    "lint": "eslint --fix --ext .ts .",
+    "test": "jest",
+    "fmt": "prettier --write .",
+    "link": "sudo pnpm link",
+    "unlink": "sudo pnpm unlink",
+    "pack": "pnpm pack",
+    "ncu": "pnpx ncu",
+    "upgrade": "pnpx ncu -u",
+    "madge": "pnpx madge --circular --extensions ts .",
+    "cti": "pnpx cti -n -b -v ./src",
+    "fix:l": "art npm/fix-lodash",
+    "test:run": "export PGPASSWORD=`art secrets/get password.pg.value` && cd ./spec/test && db-evo",
+    "test:deploy": "npm run test:run deploy"
+  },
+  "bin": {
+    "db-evo": "./bin/index.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "author": {
+    "email": "art-ws@pm.me",
+    "name": "art-ws Team",
+    "url": "https://art-ws.perg"
+  },
+  "bugs": {
+    "url": "https://github.com/art-ws/db-evo/issues",
+    "email": "art-ws@pm.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/art-ws/db-evo.git"
+  },
+  "keywords": [
+    "art-ws",
+    "database",
+    "db",
+    "postgres",
+    "pg",
+    "migrations"
+  ],
+  "dependencies": {
+    "tslib": "2.1.0",
+    "yargs": "16.2.0",
+    "fs-extra": "9.1.0",
+    "@types/fs-extra": "9.0.6",
+    "cosmiconfig": "7.0.0",
+    "@types/cosmiconfig": "5.0.3",
+    "@types/node": "14.14.25",
+    "lodash": "4.17.20",
+    "@types/lodash": "4.14.168",
+    "@art-ws/common": "latest",
+    "nunjucks": "3.2.2",
+    "@types/nunjucks": "3.1.4",
+    "pg": "8.5.1",
+    "@types/pg": "7.14.9",
+    "chalk": "4.1.0",
+    "@types/chalk": "0.4.31"
+  },
+  "devDependencies": {
+    "@art-ws/eslint": "latest",
+    "@art-ws/jest": "latest",
+    "@art-ws/package-template": "latest",
+    "@art-ws/prettier": "latest",
+    "@art-ws/tsc": "latest",
+    "@types/chai": "4.2.14",
+    "@types/jest": "26.0.20",
+    "@types/node": "14.14.25",
+    "@typescript-eslint/eslint-plugin": "4.14.2",
+    "@typescript-eslint/parser": "4.14.2",
+    "chai": "4.3.0",
+    "eslint": "7.19.0",
+    "eslint-config-prettier": "7.2.0",
+    "eslint-config-standard-with-typescript": "20.0.0",
+    "eslint-plugin-import": "2.22.1",
+    "eslint-plugin-jest": "24.1.3",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-promise": "4.2.1",
+    "eslint-plugin-standard": "4.1.0",
+    "jest": "26.6.3",
+    "jest-standard-reporter": "2.0.0",
+    "prettier": "2.2.1",
+    "rimraf": "3.0.2",
+    "ts-jest": "26.5.0",
+    "typescript": "4.1.3",
+    "madge": "4.0.0",
+    "npm-check-updates": "11.1.1",
+    "create-ts-index": "1.13.6"
+  }
+}

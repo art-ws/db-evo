@@ -3,5 +3,6 @@
 *.tsbuildinfo
 node_modules
 .rush
-dist
 coverage
+pnpm-lock.yaml
+dist

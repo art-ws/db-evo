@@ -2,3 +2,6 @@
 *.log
 *.tsbuildinfo
 node_modules
+.rush
+dist
+coverage

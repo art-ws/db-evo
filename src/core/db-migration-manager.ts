@@ -1,5 +1,6 @@
 import { assert } from "@art-ws/common"
 import chalk from "chalk"
+import { ClientConfig } from "pg"
 import { DbAdapter } from "./db-adapter"
 import { getDirectories } from "./fs-utils"
 import { Migration } from "./migration"
@@ -7,6 +8,7 @@ import { MigrationResolver } from "./migration-resolver"
 
 export interface DbMigrationManagerArgs {
   cwd: string
+  roots: string[]
   patch: string
   dbAdapter: DbAdapter
 }
@@ -16,6 +18,10 @@ export class DbMigrationManager {
 
   get cwd(): string {
     return this.args.cwd
+  }
+
+  get roots(): string[] {
+    return [this.cwd, ...(this.args.roots ?? [])].filter(Boolean)
   }
 
   get dbAdapter(): DbAdapter {
@@ -32,8 +38,8 @@ export class DbMigrationManager {
     return this.args.patch || (await this.resolvePatchName())
   }
 
-  async deploy(): Promise<void> {
-    await this.doOperation((x) => x.deploy())
+  async deploy(args: { dryRun: boolean; noInstall?: boolean }): Promise<void> {
+    await this.doOperation((x) => x.deploy(args))
   }
 
   async verify(): Promise<void> {
@@ -50,7 +56,7 @@ export class DbMigrationManager {
     console.log(chalk.grey(`Initialize...`))
     await this.dbAdapter.initialize()
     const migrationResolver = new MigrationResolver({
-      cwd: this.cwd,
+      roots: this.roots,
       dbAdapter: this.dbAdapter,
     })
     const patch = await this.getPatchName()
@@ -69,7 +75,7 @@ export class DbMigrationManager {
         chalk.yellow(
           `Last patch '${last.ver}' ${
             last.note ? `(${last.note})` : ""
-          }installed at ${last.tm}`
+          } installed at ${last.tm?.toISOString() || "<unknown>"}`
         )
       )
     }
@@ -85,4 +91,27 @@ export class DbMigrationManager {
     const ls = await this.dbAdapter.list()
     console.log(ls)
   }
+
+  async info(): Promise<void> {
+    const patch = await this.getPatchName()
+    const cfg = this.dbAdapter.getConfig<ClientConfig>()
+
+    const print = (a: string, b: string) =>
+      `${chalk.white(a)} : ${chalk.yellow(b)}`
+    console.log(`
+${print("Working dir", this.cwd)}
+${print("Env", this.dbAdapter.getEnvName())}
+${print("Patch", patch)}
+${print("DB", cfg.database)}
+${print("Host", cfg.host)}
+${print("Port", cfg.port + "")}
+${print("User", cfg.user)}
+`)
+  }
+
+  async tree(): Promise<void> {
+    await this.doOperation((x) => x.tree())
+  }
+
+  async template(): Promise<void> {}
 }

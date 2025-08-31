@@ -9,6 +9,8 @@ export interface Argv extends PgDbConnection {
   engine: string
   p: string
   patch: string
+  dryRun: boolean
+  noInstall: boolean
 }
 
 export interface Config {
@@ -18,6 +20,7 @@ export interface Config {
   patch: string
   env: string
   engine: EngineType
+  roots: string[]
 }
 
 export type CommandHandler<O> = (o?: O) => Promise<any>
@@ -27,6 +30,9 @@ export interface CommandsController {
   verify: CommandHandler<unknown>
   status: CommandHandler<unknown>
   list: CommandHandler<unknown>
+  info: CommandHandler<unknown>
+  tree: CommandHandler<unknown>
+  template: CommandHandler<unknown>
 }
 
 type CommandName = keyof CommandsController
@@ -36,7 +42,10 @@ type EngineType = "pg"
 function getDbAdapter(argv: Argv, cfg: Config): DbAdapter {
   const engine = (argv.engine ?? cfg.engine ?? "pg") as EngineType
   const env = argv.env ?? cfg.env ?? "default"
-  const connection = cfg[engine][env]
+  const connection = {
+    ...(cfg[engine]["default"] ?? {}),
+    ...(cfg[engine][env] ?? {}),
+  } as PgDbConnection
 
   const props: (keyof PgDbConnection)[] = [
     "dbname",
@@ -45,11 +54,12 @@ function getDbAdapter(argv: Argv, cfg: Config): DbAdapter {
     "port",
     "username",
   ]
+
   props.forEach((prop) => {
-    connection[prop] = (argv[prop] ?? connection[prop]) as never
+    connection[prop] = (argv[prop] ?? connection[prop] ?? null) as never
   })
 
-  const dbAdapter = new PgDbAdapter({ connection })
+  const dbAdapter = new PgDbAdapter({ connection, env })
   return dbAdapter
 }
 
@@ -60,11 +70,16 @@ export function getCommandHandler(
 ): CommandHandler<unknown> {
   const dbAdapter = getDbAdapter(argv, config)
   const cwd = argv.cwd ?? process.cwd()
-  const patch = argv.p ?? argv.patch ?? config.patch ?? ""
-  const mm = new DbMigrationManager({ dbAdapter, cwd, patch })
+  const patch = argv.p || argv.patch || config.patch || ""
+  const mm = new DbMigrationManager({
+    dbAdapter,
+    cwd,
+    roots: config.roots,
+    patch,
+  })
   const commands: CommandsController = {
     deploy: async () => {
-      await mm.deploy()
+      await mm.deploy(argv)
     },
     verify: async () => {
       await mm.verify()
@@ -77,6 +92,15 @@ export function getCommandHandler(
     },
     list: async () => {
       await mm.list()
+    },
+    info: async () => {
+      await mm.info()
+    },
+    tree: async () => {
+      await mm.tree()
+    },
+    template: async () => {
+      await mm.template()
     },
   }
 

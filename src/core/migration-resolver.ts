@@ -6,13 +6,17 @@ import { DbAdapter } from "./db-adapter"
 export class MigrationResolver {
   private cache = new Map<string, Migration>()
 
-  constructor(public args: { cwd: string; dbAdapter: DbAdapter }) {}
+  constructor(public args: { roots: string[]; dbAdapter: DbAdapter }) {}
 
   private doResolve(name: string): Migration {
-    const cwd = path.join(this.args.cwd, name)
-    if (!isDirExists(cwd)) throw new Error(`Dir '${cwd}' not exists`)
+    const dir = this.args.roots
+      .map((s) => path.join(s, name))
+      .find((s) => isDirExists(s))
+
+    if (!dir) throw new Error(`Dir '${name}' not exists`)
     return new Migration({
-      cwd,
+      cwd: dir,
+      name,
       resolver: this,
       dbAdapter: this.args.dbAdapter,
     })

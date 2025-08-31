@@ -16,10 +16,10 @@ const q = (s: string) => (s ? `'${s}'` : "null")
 const getTableDDL = ({ table, schema }) => `
 CREATE TABLE ${schema}.${table} (
 	id        serial         NOT NULL,
-	ver       varchar(128)   NOT NULL,
-  tm        timestamptz    NOT NULL DEFAULT now(),
-	note      varchar(512)   NULL,
-	checksum  varchar(128)   NOT NULL,	
+	ver       text           NOT NULL,
+  at        timestamptz    NOT NULL DEFAULT now(),
+	note      text           NULL,
+	checksum  text           NULL,	
   CONSTRAINT ${table}_pkey PRIMARY KEY (id),
 	CONSTRAINT ${table}_unique_ver UNIQUE (ver)
 )
@@ -31,9 +31,17 @@ export class PgDbAdapter extends DbAdapter {
   table = "_db_evo"
   pool: Pool
 
-  constructor(public args: { connection: PgDbConnection }) {
+  constructor(public args: { env: string; connection: PgDbConnection }) {
     super()
     this.cfg = this.getClientConfig()
+  }
+
+  getEnvName(): string {
+    return this.args.env ?? ""
+  }
+
+  getConfig<T>(): T {
+    return this.cfg as T
   }
 
   private getClientConfig(): ClientConfig {
@@ -81,7 +89,8 @@ export class PgDbAdapter extends DbAdapter {
   async ensureDatabase() {
     try {
       await this.checkConnection()
-    } catch (e) {
+    } catch (err) {
+      const e = err as any
       if (e.code === "3D000") {
         await this.createDb()
       } else throw e
@@ -146,25 +155,36 @@ export class PgDbAdapter extends DbAdapter {
     )
   }
 
+  async cat(file: string): Promise<void> {
+    console.log(file)
+  }
+
   async execFiles(args: {
     ver?: string
     register?: boolean
     unregister?: boolean
     note?: string
     files: string[]
+    dryRun?: boolean
   }): Promise<void> {
     if (args.register || args.unregister) {
       assert({ ver: args.ver }).defined().string()
     }
-    const psql = new PSqlAdapter(this.cfg)
-    for (const file of args.files) {
-      await psql.execFile(file)
-    }
-    if (args.register) {
-      await this.registerPatch({ ver: args.ver, note: args.note })
-    }
-    if (args.unregister) {
-      await this.unregisterPatch(args.ver)
+    if (args.dryRun) {
+      for (const file of args.files) {
+        await this.cat(file)
+      }
+    } else {
+      const psql = new PSqlAdapter(this.cfg)
+      for (const file of args.files) {
+        await psql.execFile(file)
+      }
+      if (args.register) {
+        await this.registerPatch({ ver: args.ver, note: args.note })
+      }
+      if (args.unregister) {
+        await this.unregisterPatch(args.ver)
+      }
     }
   }
 

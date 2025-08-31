@@ -7,7 +7,8 @@ export interface IDbPatchEntry {
 }
 export abstract class DbAdapter {
   abstract initialize(): Promise<void>
-
+  abstract getEnvName(): string;
+  abstract getConfig<T>(): T
   abstract hasPatch(ver: string): Promise<boolean>
   abstract registerPatch({ ver, note, checksum }): Promise<void>
   abstract unregisterPatch(ver: string): Promise<void>
@@ -16,7 +17,8 @@ export abstract class DbAdapter {
     register?: boolean
     unregister?: boolean
     note?: string
-    files: string[]
+    files: string[],
+    dryRun?: boolean
   }): Promise<void>
   abstract list(): Promise<IDbPatchEntry[]>
 }

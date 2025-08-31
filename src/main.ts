@@ -14,7 +14,8 @@ export async function main(args: { argv: Argv; app: string }) {
   try {
     const exitCode = (await handler(o)) ?? 0
     process.exit(exitCode)
-  } catch (e) {
+  } catch (err) {
+    const e = err as Error
     console.error(chalk.red(e.message))
     throw e
   }

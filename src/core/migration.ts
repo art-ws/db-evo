@@ -1,8 +1,16 @@
-import { lookupAndResolveJsonableFile } from "@art-ws/common"
+import { assert, lookupAndResolveJsonableFile } from "@art-ws/common"
 import { DbAdapter } from "./db-adapter"
-import { getBaseName, getFiles, isDirExists } from "./fs-utils"
+import { getFiles, isDirExists } from "./fs-utils"
 import path from "path"
 import chalk from "chalk"
+
+const pad = (n: number, s: string = " "): string => {
+  let r = ""
+  for (let i = 0; i < n; i++) {
+    r += s
+  }
+  return r
+}
 export interface IMigrationResolver {
   resolve(name: string): Migration
 }
@@ -10,6 +18,7 @@ export interface IMigrationResolver {
 export interface MigrationConfig {
   depends: string[]
   requires: string[]
+  includes: string[]
 }
 export class Migration {
   name: string
@@ -18,11 +27,14 @@ export class Migration {
   constructor(
     public args: {
       cwd: string
+      name: string
       resolver: IMigrationResolver
       dbAdapter: DbAdapter
     }
   ) {
-    this.name = getBaseName(args.cwd)
+    const { name } = args
+    assert({ name }).string().defined()
+    this.name = name
   }
 
   get dbAdapter(): DbAdapter {
@@ -43,13 +55,26 @@ export class Migration {
     return this.cfg
   }
 
+  async includes(): Promise<string[]> {
+    const cfg = await this.getConfig()
+    return cfg.includes ?? []
+  }
+
   async requires(): Promise<string[]> {
     const cfg = await this.getConfig()
-    return cfg.requires ?? cfg.depends ?? []
+    const result = [
+      ...(cfg.requires ?? cfg.depends ?? []),
+      ...(cfg.includes ?? []),
+    ].filter(Boolean)
+    return result
   }
 
   async getParents(): Promise<Migration[]> {
     return (await this.requires()).map((x) => this.args.resolver.resolve(x))
+  }
+
+  async getIncludes(): Promise<Migration[]> {
+    return (await this.includes()).map((x) => this.args.resolver.resolve(x))
   }
 
   isApplied(): Promise<boolean> {
@@ -63,67 +88,92 @@ export class Migration {
     const ls = getFiles(dir)
     ls.sort()
 
+    const isIgnore = (s: string): boolean =>
+      s.startsWith("_") || s.startsWith(".")
+
     const result = ls
-      .filter(
-        (x) => !(x.startsWith("_") || x.startsWith(".")) && x.endsWith(".sql")
-      )
+      .filter((x) => !isIgnore(x) && x.endsWith(".sql"))
       .map((x) => path.join(dir, x))
     return result
   }
 
-  deployed: boolean
-
-  async deploy(): Promise<void> {
-    if (this.deployed) return
-    if (await this.isApplied()) {
-      console.log(chalk.green(`Patch '${this.name}' already deployed.`))
-      return
+  private handled: unknown
+  async doOnce<T = void>(fn: () => Promise<T>): Promise<T> {
+    if (!this.handled) {
+      this.handled = (await fn()) ?? true
     }
-
-    for await (const p of await this.getParents()) {
-      await p.deploy()
-    }
-
-    await this.dbAdapter.execFiles({
-      ver: this.name,
-      register: true,
-      files: await this.getSQLFiles("deploy"),
-    })
-
-    console.log(chalk.green(`Deployed patch '${this.name}'`))
-
-    this.deployed = true
+    return this.handled as T
   }
 
-  verified: boolean
+  async deploy(args: { dryRun: boolean, noInstall?: boolean }): Promise<void> {
+    await this.doOnce(async () => {
+      if (await this.isApplied()) {
+        console.log(chalk.green(`Patch '${this.name}' already deployed.`))
+        return
+      }
+
+      for await (const p of await this.getParents()) {
+        await p.deploy(args)
+      }
+
+      await this.dbAdapter.execFiles({
+        ver: this.name,
+        register: !args.noInstall,
+        files: await this.getSQLFiles("deploy"),
+        dryRun: !!args?.dryRun,
+      })
+
+      console.log(chalk.green(`Deployed patch '${this.name}'`))
+    })
+  }
 
   async verify(): Promise<void> {
-    if (this.verified) return
-    console.log(chalk.grey(`Verify '${this.name}' ...`))
-    if (!(await this.isApplied()))
-      throw new Error(`Patch '${this.name}' not deployed`)
-    for await (const p of await this.getParents()) {
-      await p.verify()
-    }
+    await this.doOnce(async () => {
+      console.log(chalk.grey(`Verify '${this.name}' ...`))
+      if (!(await this.isApplied()))
+        throw new Error(`Patch '${this.name}' not deployed`)
+      for await (const p of await this.getParents()) {
+        await p.verify()
+      }
 
-    await this.dbAdapter.execFiles({
-      files: await this.getSQLFiles("verify"),
+      await this.dbAdapter.execFiles({
+        files: await this.getSQLFiles("verify"),
+      })
+
+      console.log(chalk.green(`Patch '${this.name}' verify successful`))
     })
-
-    console.log(chalk.green(`Patch '${this.name}' verify successful`))
-    this.verified = true
   }
 
-  reverted: boolean
-
   async revert(): Promise<void> {
-    if (this.reverted) return
-    await this.dbAdapter.execFiles({
-      ver: this.name,
-      unregister: true,
-      files: await this.getSQLFiles("revert"),
+    await this.doOnce(async () => {
+      await this.dbAdapter.execFiles({
+        ver: this.name,
+        unregister: true,
+        files: await this.getSQLFiles("revert"),
+      })
+      for await (const p of await this.getIncludes()) {
+        await p.revert()
+      }
+      console.log(chalk.green(`Patch '${this.name}' reverted`))
     })
-    console.log(chalk.green(`Patch '${this.name}' reverted`))
-    this.reverted = true
+  }
+
+  async doTree(level: number): Promise<void> {
+    await this.doOnce(async () => {
+      const isApplied = await this.isApplied()
+      const color = isApplied ? chalk.green.bind(chalk) : chalk.red.bind(chalk)
+      console.log(
+        color(`${pad(level, "  ")}'${this.name}'`) +
+          chalk.white(" - ") +
+          chalk.grey(this.cwd)
+      )
+      for await (const p of await this.getParents()) {
+        await p.doTree(level + 1)
+      }
+    })
+  }
+
+  async tree(): Promise<void> {
+    await this.doTree(0)
   }
 }

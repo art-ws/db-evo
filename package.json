@@ -2,48 +2,6 @@
   "name": "db-evo",
   "version": "1.1.0",
   "description": "art-ws.com DB evolutions",
-  "homepage": "https://github.com/art-ws/db-evo",
-  "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "clean": "rimraf dist coverage *.tgz *.tsbuildinfo *.log",
-    "lint": "eslint --fix --ext .ts .",
-    "test": "jest",
-    "fmt": "prettier --write .",
-    "link": "sudo pnpm link",
-    "unlink": "sudo pnpm unlink",
-    "pack": "pnpm pack",
-    "ncu": "pnpx ncu",
-    "upgrade": "pnpx ncu -u",
-    "madge": "pnpx madge --circular --extensions ts .",
-    "cti": "pnpx cti -n -b -v ./src"
-  },
-  "bin": {
-    "db-evo": "bin/index.js"
-  },
-  "files": [
-    "bin",
-    "dist"
-  ],
-  "engines": {
-    "node": ">=14"
-  },
-  "author": {
-    "email": "art-ws@pm.me",
-    "name": "art-ws Team",
-    "url": "https://art-ws.org"
-  },
-  "bugs": {
-    "url": "https://github.com/art-ws/db-evo/issues",
-    "email": "art-ws@pm.me"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/art-ws/db-evo.git"
-  },
   "keywords": [
     "art-ws",
     "database",
@@ -52,23 +10,64 @@
     "pg",
     "migrations"
   ],
+  "homepage": "https://github.com/art-ws/db-evo",
+  "bugs": {
+    "url": "https://github.com/art-ws/db-evo/issues",
+    "email": "art-ws@pm.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/art-ws/db-evo.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "art-ws Team",
+    "email": "art-ws@pm.me",
+    "url": "https://art-ws.org"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "db-evo": "bin/index.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "bump": "pnpm version patch --no-git-checks",
+    "clean": "rimraf dist coverage *.tgz *.tsbuildinfo *.log",
+    "cti": "pnpx cti -n -b -v ./src",
+    "fmt": "prettier --write .",
+    "link": "sudo pnpm link",
+    "lint": "eslint --fix --ext .ts .",
+    "madge": "pnpx madge --circular --extensions ts .",
+    "ncu": "pnpx ncu",
+    "pack": "pnpm pack",
+    "pub": "pnpm publish --access public --no-git-checks",
+    "test": "jest",
+    "unlink": "sudo pnpm unlink",
+    "upgrade": "pnpx ncu -u",
+    "watch": "tsc --watch"
+  },
   "dependencies": {
-    "tslib": "2.1.0",
-    "yargs": "16.2.0",
-    "fs-extra": "9.1.0",
-    "@types/fs-extra": "9.0.7",
-    "cosmiconfig": "7.0.0",
-    "@types/cosmiconfig": "5.0.3",
-    "@types/node": "14.14.27",
-    "lodash": "4.17.20",
-    "@types/lodash": "4.14.168",
     "@art-ws/common": "latest",
-    "nunjucks": "3.2.2",
+    "@types/chalk": "0.4.31",
+    "@types/cosmiconfig": "5.0.3",
+    "@types/fs-extra": "9.0.7",
+    "@types/lodash": "4.14.168",
+    "@types/node": "14.14.27",
     "@types/nunjucks": "3.1.4",
-    "pg": "8.5.1",
     "@types/pg": "7.14.9",
     "chalk": "4.1.0",
-    "@types/chalk": "0.4.31"
+    "cosmiconfig": "7.0.0",
+    "fs-extra": "9.1.0",
+    "lodash": "4.17.20",
+    "nunjucks": "3.2.2",
+    "pg": "8.5.1",
+    "tslib": "2.1.0",
+    "yargs": "16.2.0"
   },
   "devDependencies": {
     "@art-ws/eslint": "latest",
@@ -82,6 +81,7 @@
     "@typescript-eslint/eslint-plugin": "4.15.0",
     "@typescript-eslint/parser": "4.15.0",
     "chai": "4.3.0",
+    "create-ts-index": "1.13.6",
     "eslint": "7.19.0",
     "eslint-config-prettier": "7.2.0",
     "eslint-config-standard-with-typescript": "20.0.0",
@@ -92,12 +92,17 @@
     "eslint-plugin-standard": "4.1.0",
     "jest": "26.6.3",
     "jest-standard-reporter": "2.0.0",
+    "madge": "4.0.0",
+    "npm-check-updates": "11.1.1",
     "prettier": "2.2.1",
     "rimraf": "3.0.2",
     "ts-jest": "26.5.1",
-    "typescript": "4.1.5",
-    "madge": "4.0.0",
-    "npm-check-updates": "11.1.1",
-    "create-ts-index": "1.13.6"
+    "typescript": "4.1.5"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

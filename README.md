@@ -72,9 +72,14 @@ Create `db-evo.yaml` files to configure migrations:
 
 ```yaml
 # Root configuration
+patch: "01" # Latest migration
+env: "default"
+engine: "pg" # Only supported
+roots: # Each migration is a folder, so let's specify the root dir
+  - "~/workspace/projects/myapp/db/migrations"
 pg:
   default:
-    dbname: myapp
+    dbname: myapp_dev
     host: localhost
     port: 5432
     username: postgres

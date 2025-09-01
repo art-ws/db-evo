@@ -38,9 +38,13 @@ migrations/
 │       └── 01-create-posts.sql
 ```
 
-2. Configure database connection in `db-evo.yaml`:
+2. Configure database connection in `.db-evorc.yaml`:
 
 ```yaml
+patch: "00" 
+env: "default"
+roots: 
+  - "~/workspace/projects/myapp/db/migrations"
 pg:
   default:
     dbname: myapp
@@ -52,8 +56,10 @@ pg:
 
 3. Deploy migrations:
 
+Run command from folder, where `.db-evorc.yaml` file placed.
+
 ```bash
-db-evo deploy
+db-evo deploy --env=production
 ```
 
 ## Commands
@@ -68,7 +74,7 @@ db-evo deploy
 
 ## Configuration
 
-Create `db-evo.yaml` files to configure migrations:
+Create `.db-evorc.yaml` files to configure migrations:
 
 ```yaml
 # Root configuration
@@ -87,28 +93,33 @@ pg:
   production:
     dbname: myapp_prod
     host: prod.example.com
+```
 
+Create `~/workspace/projects/myapp/db/migrations/01/db-evo.yaml` file to configure migration:
+
+```yaml
 # Per-migration configuration
-depends: ["00"]  # Require patch 00 before applying
-includes: ["shared"]  # Include shared migrations
+depends: ["00"]  # Require patch 00 before applying (optional)
+includes: ["shared"]  # Include shared migrations (optional)
 ```
 
 ## Migration Structure
 
-Each migration patch follows this structure:
+Each migration patch follows this structure (see `roots` config parameter):
 
 ```text
 patch-name/
-├── db-evo.yaml     # Configuration (optional)
-├── vars.yaml       # Variables for templates (optional)
+├── db-evo.yaml     # Migration configuration
 ├── deploy/         # Forward migration scripts
 │   ├── 01.sql
 │   └── 02.sql
-├── revert/         # Rollback scripts (optional)
+├── revert/         # Rollback scripts 
 │   └── 01.sql
-└── verify/         # Verification scripts (optional)
+└── verify/         # Verification scripts 
     └── 01.sql
 ```
+
+Each SQL script must be a valid script for `psql`.
 
 ## Options
 
